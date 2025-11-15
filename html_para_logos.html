@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criador de Logo MOORE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        input[type="file"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            cursor: pointer;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            margin: 20px 0;
+            max-width: 100%;
+            display: none;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .preview {
+            margin-top: 20px;
+        }
+        .settings {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .settings label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        .settings input, .settings select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Criador de Logo MOORE</h1>
+        
+        <div class="upload-section">
+            <label for="logoUpload"><strong>1. Faça upload do seu logo:</strong></label>
+            <input type="file" id="logoUpload" accept="image/*">
+        </div>
+
+        <div class="settings">
+            <strong>2. Personalize:</strong>
+            
+            <label>Texto:</label>
+            <input type="text" id="logoText" value="MOORE">
+            
+            <label>Tamanho da Fonte:</label>
+            <input type="number" id="fontSize" value="80" min="20" max="200">
+            
+            <label>Espaçamento:</label>
+            <input type="number" id="spacing" value="30" min="0" max="100">
+            
+            <label>Cor do Texto:</label>
+            <input type="color" id="textColor" value="#000000">
+            
+            <label>Fundo Transparente:</label>
+            <select id="transparent">
+                <option value="true">Sim</option>
+                <option value="false">Não (branco)</option>
+            </select>
+        </div>
+
+        <button onclick="generateLogo()" id="generateBtn" disabled>3. Gerar Logo</button>
+        
+        <div class="preview">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <button onclick="downloadLogo()" id="downloadBtn" style="display:none; background:#28a745;">
+            ⬇️ Baixar Imagem
+        </button>
+    </div>
+
+    <script>
+        let uploadedImage = null;
+
+        document.getElementById('logoUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        uploadedImage = img;
+                        document.getElementById('generateBtn').disabled = false;
+                        generateLogo();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Auto-gerar quando mudar configurações
+        ['logoText', 'fontSize', 'spacing', 'textColor', 'transparent'].forEach(id => {
+            document.getElementById(id).addEventListener('change', function() {
+                if (uploadedImage) generateLogo();
+            });
+        });
+
+        function generateLogo() {
+            if (!uploadedImage) return;
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const text = document.getElementById('logoText').value;
+            const fontSize = parseInt(document.getElementById('fontSize').value);
+            const spacing = parseInt(document.getElementById('spacing').value);
+            const textColor = document.getElementById('textColor').value;
+            const transparent = document.getElementById('transparent').value === 'true';
+
+            // Configurar fonte para medir texto
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            const textMetrics = ctx.measureText(text);
+            const textWidth = textMetrics.width;
+
+            // Dimensões do canvas
+            const totalWidth = uploadedImage.width + spacing + textWidth + 40;
+            const totalHeight = Math.max(uploadedImage.height, fontSize * 1.5);
+
+            canvas.width = totalWidth;
+            canvas.height = totalHeight;
+
+            // Limpar canvas
+            if (!transparent) {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Desenhar logo centralizado verticalmente
+            const logoY = (totalHeight - uploadedImage.height) / 2;
+            ctx.drawImage(uploadedImage, 0, logoY);
+
+            // Desenhar texto
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            ctx.fillStyle = textColor;
+            ctx.textBaseline = 'middle';
+            const textX = uploadedImage.width + spacing;
+            const textY = totalHeight / 2;
+            ctx.fillText(text, textX, textY);
+
+            // Mostrar canvas e botão de download
+            canvas.style.display = 'block';
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+        }
+
+        function downloadLogo() {
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = 'logo_moore_combined.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
